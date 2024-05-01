@@ -1,0 +1,271 @@
+{% from "_helpers.html" import render_field %}
+{% extends "layout.html" %}
+
+{% block head %}
+    <script src="/static/js/jquery.min.js"></script>
+    <link rel="stylesheet" href="/static/css/magnific-popup.css">
+    <script src="/static/js/jquery-magnific-popup.js"></script>
+
+    <style>
+        .mfp-bottom-bar
+        {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .mfp-counter
+        {
+            position: relative;
+        }
+        .mfp-title
+        {
+            padding-left: 1rem;
+        }
+        .popup-btn
+        {
+            transition: border 0.4s ease;
+        }
+    </style>
+
+    <script>
+        $(() => {
+            const init_popup = () => {
+                const popup_btn = $('.popup-btn');
+                popup_btn.magnificPopup({
+                    type : 'image',
+                    gallery : {
+                        enabled : true
+                    },
+                    image: {
+                        titleSrc: (item) => {
+                            return `<input 
+                                type="text" 
+                                value="${item.el.attr('data-title')}" 
+                                class="form-control text-center w-auto mt-2 mfp-title-input"
+                                name="${item.el.attr('data-id')}"
+                            >`;
+                        }
+                    },
+                    callbacks: {
+                        open: function() {
+                            const curr = this.currItem.el
+                            $('.mfp-title-input').on('change', function() {
+                                const new_title = $(this).val();
+                                // Update the attribute and the image's header in dom
+                                curr.attr('data-title', new_title)
+                                curr.siblings('figcaption').find("h4").html(new_title)
+                                const id = curr.attr('data-id')
+    
+                                // Update the title from the database through AJAX
+                                $.ajax({
+                                    url: '/update_image_title',
+                                    type: 'POST',
+                                    data: {
+                                        title: new_title,
+                                        id: id
+                                    },
+                                    dataType: 'json',
+                                    success: () => {
+                                        console.log(`Image's title with the id of ${id} successfully changed to ${new_title}`)
+                                    }
+                                })
+                            })
+                        }
+                    }
+                });
+            }
+
+            let q = '';
+            let offset_counter = 0;
+            let can_load = true;
+            const load_images = (amount=8) => {
+                // Display loader
+                $('#loader').show();
+                // Restrict other loads
+                can_load = false;
+                // For Paginations, we need AJAX
+                $.ajax({
+                    url: '/get_images',
+                    type: 'GET',
+                    data: {
+                        amount: amount,
+                        offset: offset_counter,
+                        q: q
+                    },
+                    dataType: 'json',
+                    cache: true,
+                    success: (images) => {
+                        if(images.length == 0)
+                        {
+                            // If there are no more images left then stop other loads
+                            can_load = false;
+                            $("#loader").hide();
+                            return;
+                        }
+
+                        for (image of images)
+                        {
+                            // Javascript templating
+                            const img_html = /* html */ `
+                            <div class="col-lg-3 col-md-4 col-6 col-sm-6 p-1 p-sm-2 py-2 img-cont" data-id=${image.id}>
+                                <a href="${image.path}" class="popup-btn position-relative d-block border border-5 rounded p-1 p-sm-3" 
+                                    data-fancybox-group="gallery" data-title="${image.title}" data-id=${image.id} 
+                                    role="button"
+                                >
+                                    <input type="checkbox" name="images" id="${image.id}" val="${image.id}" hidden>
+                                    <img src="${image.path}" alt="${image.title}" class="img-fluid">
+                                </a>
+                                <figcaption class="py-4">
+                                    <h4 class="fs-6 text-nowrap">${image.title}</h4>
+                                </figcaption>
+                            </div>`;
+                            // Appending the image template to the gallery
+                            $("#gallery").append(img_html);
+                        }
+                        // Increment the offset_counter by the length of the images retrived
+                        offset_counter += images.length;
+                        
+                        // Re-initialize magnefic popup due to DOM update
+                        init_popup();
+                        
+                        can_load = true;
+                        $("#loader").hide();
+                    },
+                    error: (error) => {
+                        alert(`Failed to load images: ${error.response}`)
+                        console.error(error);
+                        can_load = true;
+                        $("#loader").hide();
+                    }
+                });
+            }
+
+            load_images();
+
+            // Pagination event handler on scroll
+            $(window).scroll(function() {
+                if($(window).scrollTop() + $(window).height() > $(document).height() - 25 && can_load) {
+                    load_images(4);
+                }
+            });
+            // Handle search query
+            $('#search').on('keyup', function() {
+                const text = $(this).val().trim();
+                // Remove all images from dom
+                $('#gallery').html('');
+                // Reset offset counter
+                offset_counter = 0;
+                q = text;
+                load_images();
+            });
+            // Handle image selection
+            let can_select = $('#select-images').is(':checked');
+            const $delete_btn = $('#delete-btn');
+            $('#select-images').on('click',  function() {
+                const popup_btn =  $('.popup-btn');
+                
+                can_select = $(this).is(':checked');
+                if (can_select)
+                {
+                    $delete_btn.show();
+                    // Add selection class
+                    popup_btn.addClass('border-white');
+                }
+                else
+                {
+                    $delete_btn.hide();
+                    // Remove selection classes
+                    popup_btn.removeClass('border-white');
+                    popup_btn.removeClass('border-primary');
+                    // Uncheck all inputs
+                    popup_btn.find('[name=images]').attr('checked', false);
+                }
+            });
+            $('#gallery').on('click', '.popup-btn', function(e) {
+                if (can_select)
+                {
+                    const curr = $(this)
+                    // Disable magnefic popup and link behaviour
+                    $.magnificPopup.close();
+                    e.preventDefault();
+
+                    // Explicitly toggle checkbox because of preventDefault
+                    curr.find('[name=images]').attr('checked', (index, oldChecked) => {return !oldChecked});
+                    // Toggle between white and primary border color
+                    curr.toggleClass('border-white');
+                    curr.toggleClass('border-primary');
+
+                    // Get check list
+                    let checklist = [];
+                    $('[name=images]').each(function(){
+                        const curr = $(this);
+                        const id = curr.attr('id');
+                        const is_checked = curr.is(':checked');
+
+                        checklist.push({
+                            id: id,
+                            checked: is_checked
+                        });
+                    });
+                }
+            });
+            // Handle images deletion
+            $('#delete-btn').on('click', (e) => {
+                e.preventDefault();
+                // Get the ids of images that are checked
+                let delete_list = [];
+                $('[name=images]').each(function(){
+                    const curr = $(this);                    
+                    if (curr.is(':checked'))
+                    {
+                        // If it is 'checked' then push to the list.
+                        delete_list.push(curr.attr('id'));
+                    }
+                });
+                $.ajax({
+                    url: '/delete_images',
+                    type: 'POST',
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        delete_list: delete_list
+                    }),
+                    dataType: 'json',
+                    success: (response) => {
+                        for (id of delete_list)
+                        {
+                            $(`[data-id=${id}]`).remove();
+                        }
+                        // Decrement the offset_counter for loading images by the number of images deleted
+                        offset_counter -= delete_list.length
+
+                        console.log(response.success);
+                    },
+                })
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block title %}
+    Home
+{% endblock %}
+{% block main %}
+    <div class="container">
+        <div class="p-4 row justify-content-between gap-4">
+            <div class="col-sm-4">
+                <input type="search" id="search" class="form-control w-auto mx-auto mx-sm-0" placeholder="Search Images">
+            </div>
+            <div class="col-sm-4 text-nowrap">
+                <input type="checkbox" class="btn-check" id="select-images" autocomplete="off">
+                <label class="btn btn-outline-primary me-2" for="select-images">Select Images</label>
+                <button class="btn btn-danger" id="delete-btn" style="display: none;">Delete</button>
+            </div>
+        </div>  
+        <section id="gallery" class="row p-2 align-items-center">
+            <!-- Async load here -->
+        </section>
+        <div id="loader" class="spinner-grow spinner-grow-lg text-secondary" role="status" style="display: none;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+{% endblock %}

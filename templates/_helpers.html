@@ -1,0 +1,25 @@
+{% macro render_field(field, containerClass="mb-3", appendClass="mx-auto w-auto") %}
+  <dd class="{{ containerClass }}">
+    {% set typeClassMap = {
+      "SubmitField" : "btn btn-primary",
+      "SelectField" : "form-select",
+      "Default"     : "form-control" 
+    } %}
+    {% set class = typeClassMap[field.type] if field.type in typeClassMap else typeClassMap["Default"] %}
+    {% set isInvalidClass = "" if field.errors else "" %}
+    {{ field(class=class ~ isInvalidClass ~ " " ~ appendClass, placeholder=field.label.text)|safe }}
+    {% if field.errors %}
+      <ul class="list-unstyled">
+        {% for error in field.errors %}
+          <li class="invalid-feedback d-block">{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </dd>
+{% endmacro %}
+
+{% macro render_fields(form) %}
+  {% for field in form._fields.values() %}
+    {{ render_field(field) }}
+  {% endfor %}
+{% endmacro %}

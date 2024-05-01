@@ -1,0 +1,11 @@
+{% from "_helpers.html" import render_fields %}
+{% extends "layout.html" %}
+
+{% block title %}Confirm Reset Password{% endblock %}
+
+{% block main %}
+    <form action="{{ request.url }}" method="post">
+        <h1 class="fs-3 my-4">Confirm Reset Password</h1>
+        {{ render_fields(form) }}
+    </form>
+{% endblock %}

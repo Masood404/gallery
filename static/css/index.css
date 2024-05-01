@@ -1,0 +1,7 @@
+@media only screen and (max-width: 576px) {
+    /* Dynamic file fields. Bootstrap does not do this for very small screen widths */
+    input[type="file"]
+    {
+        font-size: small;
+    }
+}

@@ -1,0 +1,11 @@
+{% from "_helpers.html" import render_fields %}
+{% extends "layout.html" %}
+
+{% block title %}Upload Image(s){% endblock %}
+
+{% block main %}
+    <form action="{{ request.path }}" method="post" enctype="multipart/form-data">
+        <h1 class="my-4 fs-2">Upload Image(s)</h1>
+        {{ render_fields(form) }}
+    </form>
+{% endblock %}

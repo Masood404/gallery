@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% from "_helpers.html" import render_fields %}
+
+{% block title %}
+    Login
+{% endblock %}
+
+{% block main %}
+    <form action="/login" method="post" class="">
+        <h1 class="fs-3 my-4">Login</h1>
+        {{ render_fields(form) }}
+        <div class="mb-3">
+            <a class="text-decoration-none" href="/reset_password">Forgot Password</a>
+        </div>
+    </form>
+{% endblock %}

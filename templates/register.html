@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% from "_helpers.html" import render_fields %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block main %}
+    <form action="{{ request.path }}" method="post" class="">
+        <h1 class="fs-3 my-4">Register: <span class="text-capitalize">{{ title }}</span></h1>
+        {{ render_fields(form) }}
+    </form>
+{% endblock %}

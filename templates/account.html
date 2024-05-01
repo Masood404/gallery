@@ -1,0 +1,43 @@
+{% from "_helpers.html" import render_fields, render_field %}
+{% extends "layout.html" %}
+
+{% block head %}
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script>
+        $(() => {
+            const $email_option = $('#email-select')
+
+            $email_option.on('change', function() {
+                is_hidden = $(this).val() != 'add_email'
+
+                $("#email-email").attr("hidden", is_hidden)
+                $("#email-delete").attr("hidden", !is_hidden)
+                $("#email-submit").attr("hidden", is_hidden)
+            })
+        });
+    </script>
+{% endblock %}
+
+{% block title %}Account{% endblock %}
+
+{% block main %}
+    <h1 class="my-5 border-bottom border-2 fs-1 pb-2">Account</h1>
+    <div class="container">
+        <div class="row gap-5 pb-3 mb-2 border-bottom border-2">
+            <div class="col">
+                <form action="/account" method="post" class="mb-5">
+                    <h3 class="fs-4 mb-4">Username</h3>
+                    {{ render_fields(username_form) }}
+                </form>
+                <form action="/account" method="post">
+                    <h3 class="fs-4 mb-4">Email Addresses</h3>
+                    {{ render_fields(email_form) }}
+                </form>
+            </div>
+            <form action="/account" method="post" class="col">
+                <h3 class="fs-4 mb-4">Password</h3>
+                {{ render_fields(password_form) }}
+            </form>
+        </div>
+    </div>
+{% endblock %}
